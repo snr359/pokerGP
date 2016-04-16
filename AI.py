@@ -29,9 +29,10 @@ class AI:
         self.fitnessRatings = []
         self.fitness = 0
         self.memory = [0]*memorySize
-    def clear(self):
+    def clearFitness(self):
         self.fitnessRatings = []
         self.fitness = 0
+    def clearMem(self):
         self.memory = [0]*memorySize
     def getDecision(self, environment):
         return self.baseNode.get(self.memory, environment)
@@ -49,7 +50,7 @@ def getAllNodes(tree):
     """
     Returns a list of all the nodes in a tree
     """
-    results = []
+    results = list()
     results.append(tree)
     if len(tree.branches) > 0:
         for b in tree.branches:
@@ -64,11 +65,11 @@ def generateRandomDecisionTree(returnType, depthLimit, terminateChance):
     newNodeType = random.choice(allNodeTypes)
     newNode = newNodeType()
     if depthLimit == 0 or random.random() < terminateChance:
-        while(newNode.returnType != returnType or newNode.isTerminal == False):
+        while newNode.returnType != returnType or newNode.isTerminal == False:
             newNodeType = random.choice(allNodeTypes)
             newNode = newNodeType()
     else:
-        while(newNode.returnType != returnType or newNode.isTerminal == True):
+        while newNode.returnType != returnType or newNode.isTerminal == True:
             newNodeType = random.choice(allNodeTypes)
             newNode = newNodeType()
     newNode = newNodeType()
@@ -114,7 +115,7 @@ def evalFitness(players):
             gameOn = False
             break
         else:
-            pileToTakeFrom = pileToTakeFrom % len(stonePiles)
+            pileToTakeFrom %= len(stonePiles)
             numberStonesToTake = max(numberStonesToTake, 1)        
             stonePiles[pileToTakeFrom] -= numberStonesToTake
             if stonePiles[pileToTakeFrom] <= 0:
@@ -137,13 +138,13 @@ def evalPopulation(population, bestAncestors, minimumEvaluations):
     Each member will be evaluated a minimum number of times
     """
     for p in population:
-        p.clear()
+        p.clearFitness()
     if len(bestAncestors) > maxAncestorsUsed:
         ancestorsUsed = random.sample(bestAncestors, maxAncestorsUsed)
     else:
         ancestorsUsed = bestAncestors
     for a in ancestorsUsed:
-        a.clear()
+        a.clearFitness()
     evalGroups = makeGroups(population + ancestorsUsed, playersPerGame, minimumEvaluations)
     ###if __name__ == '__main__':
     ###    evalPool = ThreadPool()
@@ -252,9 +253,9 @@ def simplifyTree(AI, tree):
         AI.replaceNode(tree, replacementNode)
 
     elif (type(tree) == ifNodeAction or type(tree) == ifNodeNumber) and type(tree.branches[0]) == constantBooleanNode:
-        if tree.branches[0].value == True:
+        if tree.branches[0].value:
             AI.replaceNode(tree, tree.branches[1])
-        elif tree.branches[0].value == False:
+        elif not tree.branches[0].value:
             AI.replaceNode(tree, tree.branches[2])
 
                     
