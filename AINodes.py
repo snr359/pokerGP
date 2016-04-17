@@ -244,19 +244,26 @@ class readEnvironmentNode:
     """
     def __init__(self):
         self.returnType = 'number'
-        self.branchTypes = ['number', 'number']
-        self.branches = [None, None]
+        self.branchTypes = ['number', 'number', 'number']
+        self.branches = [None, None, None]
         self.isTerminal = False
         self.parent = None
         self.parentBranchIndex = -1
         self.op = 'look'
     def get(self, memory, environment):
-        a = (self.branches[0].get(memory, environment)) % len(environment)
-        if a == 0:
-            value = environment[a]
-        else:
-            b = int(self.branches[0].get(memory, environment)) % len(environment[a])
+        a = self.branches[0].get(memory, environment) % len(environment)
+        if a in (0, 2):
+            if len(environment[a]) == 0:
+                value = -1
+            else:
+                b = self.branches[1].get(memory, environment) % len(environment[a])
+                c = self.branches[2].get(memory, environment) % len(environment[a][b])
+                value = environment[a][b][c]
+        elif a in (3, 4):
+            b = self.branches[1].get(memory, environment) % len(environment[a])
             value = environment[a][b]
+        else:
+            value = environment[a]
         return value
 
 class buildActionNode:
@@ -273,6 +280,7 @@ class buildActionNode:
         self.op = 'make action'
     def get(self, memory, environment):
         return int(self.branches[0].get(memory, environment)), int(self.branches[1].get(memory, environment))
+
 
 class constantNumberNode:
     """

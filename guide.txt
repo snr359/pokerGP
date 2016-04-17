@@ -14,4 +14,25 @@ Poker Card Values:
 AI Decisions:
 0 = Call/Check
 1 = Bet/Raise
+    0 = Amount to bet/raise
 2 = Fold
+
+Poker Environment Data Indexes
+0 = Own Cards
+    0-1 = Card Index
+        0 = Card Suit
+        1 = Card Value
+1 = Number of public cards
+2 = Public cards
+    0-4 = Card Index
+        0 = Card Suit
+        1 = Card Value
+3 = Current Bets
+    0-NumPlayers = Player Index
+4 = Current Money
+    0-NumPlayers = Player Index
+5 = Self Index
+6 = Own Money
+7 - Own Bet
+8 - Amount to call
+9 = Current Pot

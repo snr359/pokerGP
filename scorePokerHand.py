@@ -86,6 +86,7 @@ def scoreHighCord(hand):
 
 def scoreHand(hand):
     # returns the score of a poker hand
+    hand = list(hand)
     hand.sort(key=lambda x: x[1], reverse=True)
     score = scoreStraightFlush(hand)
     if score == 0:
