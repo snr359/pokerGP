@@ -1,0 +1,17 @@
+Poker Card Suits:
+0 = Spades
+1 = Clubs
+2 = Diamonds
+3 = Hearts
+
+Poker Card Values:
+2-10 = 2-10
+11 = Jack
+12 = Queen
+13 = King
+14 = Ace
+
+AI Decisions:
+0 = Call/Check
+1 = Bet/Raise
+2 = Fold

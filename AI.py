@@ -4,10 +4,14 @@ import time
 import copy
 from multiprocessing import Pool as ThreadPool
 from AINodes import *
+from scorePokerHand import *
 
 memorySize = 256
 
-playersPerGame = 2
+numberPlayersPerGame = 6
+handLimit = 50
+initialMoney = 100
+initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
 populationSize = 20
 numberGenerations = 10
@@ -97,40 +101,26 @@ def makeGroups(population, groupSize, minRepeats):
 
 def evalFitness(players):
     """
-    Evaluates the fitness of the given AI players and records it in their fitness evaluations list
+    Evaluates the fitness of the given AI players and records it in their fitness evaluations list by playing Texas Hold Em
     """
-    stonePiles = []
-    numberStonePiles = random.randint(2,8)
-    for i in range(0, numberStonePiles):
-        stonePiles.append(random.randint(10,100))
-    environment = (len(stonePiles), stonePiles)	
-    playerAtTurnIndex = 0
-    numberPlayers = len(players)
-    gameOn = True
-    winner = None
-    while(gameOn):
-        pileToTakeFrom, numberStonesToTake = players[playerAtTurnIndex].getDecision(environment)
-        if numberStonesToTake < 1 or pileToTakeFrom >= len(stonePiles) or pileToTakeFrom < 0:
-            winner = players[playerAtTurnIndex - 1]
-            gameOn = False
-            break
-        else:
-            pileToTakeFrom %= len(stonePiles)
-            numberStonesToTake = max(numberStonesToTake, 1)        
-            stonePiles[pileToTakeFrom] -= numberStonesToTake
-            if stonePiles[pileToTakeFrom] <= 0:
-                del stonePiles[pileToTakeFrom]
-            if len(stonePiles) == 0:
-                winner = players[playerAtTurnIndex]
-                gameOn = False
-            else:
-                playerAtTurnIndex = (playerAtTurnIndex + 1) % numberPlayers
-    for p in players:
-        if p is winner:
-            p.fitnessRatings.append(1)
-        else:
-            p.fitnessRatings.append(0)
-    return
+    # Initialize variables and deck
+    playerStillInGame = [True]*numberPlayersPerGame
+    playerStillInHand = [True]*numberPlayersPerGame
+
+    deck = initialDeck
+
+    # Play poker hands until either the maximum number of hands has been played or one player has won all the money
+    handsPlayed = 0
+    stillPlaying = True
+    while handsPlayed < handLimit and stillPlaying:
+        playersMoney = [initialMoney] * numberPlayersPerGame
+        random.shuffle(deck)
+        bets = [0] * numberPlayersPerGame
+        hands = [] * numberPlayersPerGame
+
+        # Deal initial cards and get all players' bets
+
+
 
 def evalPopulation(population, bestAncestors, minimumEvaluations):
     """
@@ -145,7 +135,7 @@ def evalPopulation(population, bestAncestors, minimumEvaluations):
         ancestorsUsed = bestAncestors
     for a in ancestorsUsed:
         a.clearFitness()
-    evalGroups = makeGroups(population + ancestorsUsed, playersPerGame, minimumEvaluations)
+    evalGroups = makeGroups(population + ancestorsUsed, numberPlayersPerGame, minimumEvaluations)
     ###if __name__ == '__main__':
     ###    evalPool = ThreadPool()
     ###    evalPool.map(evalFitness, evalGroups)
