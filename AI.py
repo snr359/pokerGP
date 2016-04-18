@@ -11,15 +11,15 @@ from scorePokerHand import *
 memorySize = 256
 
 numberPlayersPerGame = 6
-handLimit = 1
+handLimit = 10
 initialMoney = 100
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
-populationSize = 10
-numberGenerations = 10
-numberChildrenPerGeneration = 10
-numberEvaluationsPerMember = 2
-parsimonyPressure = .000005
+populationSize = 50
+numberGenerations = 20
+numberChildrenPerGeneration = 50
+numberEvaluationsPerMember = 20
+parsimonyPressure = .0005
 maxAncestorsUsed = 30
 
 mutationChance = .02
@@ -100,6 +100,53 @@ def makeGroups(population, groupSize, minRepeats):
         groups.append(newGroup)
     return groups
 
+def getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand):
+    """
+    Collect the bets at a particular point in the game
+    """
+    bets = [0] * numberPlayersPerGame
+    playerBettingIndex = 0
+    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
+    collectingBets = True
+    while collectingBets:
+        if playerStillInHand[playerBettingIndex] and playerStillInHand.count(True) > 1:
+
+            environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney, playerBettingIndex, playersMoney[playerBettingIndex], bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
+            thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
+            thisPlayersDecision = (thisPlayersDecision[0] % 3, thisPlayersDecision[1])
+            amountToBet = 0
+
+            # Get player's decision
+            if thisPlayersDecision[0] == 0:
+                amountToBet = max(bets) - bets[playerBettingIndex]
+            elif thisPlayersDecision[0] == 1:
+                amountToBet = abs(thisPlayersDecision[1] + max(bets) - bets[playerBettingIndex])
+                # Cap bet to amount of money player has left
+                amountToBet = min(amountToBet, playersMoney[playerBettingIndex])
+                if amountToBet > 0:
+                    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
+            elif thisPlayersDecision[0] == 2:
+                playerStillInHand[playerBettingIndex] = False
+
+            if playerStillInHand[playerBettingIndex]:
+                playersMoney[playerBettingIndex] -= amountToBet
+                bets[playerBettingIndex] += amountToBet
+
+                # If the player has not met the minimum bet to stay in the game, they fold automatically
+                if bets[playerBettingIndex] < max(bets):
+                    playerStillInHand[playerBettingIndex] = False
+
+        # Stop collecting bets if we have reached the last player we need a bet from
+        if playerBettingIndex == lastPlayerToCollectBetsFromIndex:
+            collectingBets = False
+
+        else:
+            playerBettingIndex += 1
+            playerBettingIndex %= numberPlayersPerGame
+
+    return bets
+
+
 def evalFitness(players):
     """
     Evaluates the fitness of the given AI players and records it in their fitness evaluations list by playing Texas Hold Em
@@ -107,6 +154,8 @@ def evalFitness(players):
     # Initialize variables and deck
     playerStillInGame = [True]*numberPlayersPerGame
     playersMoney = [initialMoney] * numberPlayersPerGame
+    for p in players:
+        p.clearMemory()
 
     # Play poker hands until either the maximum number of hands has been played or one player has won all the money
     handsPlayed = 0
@@ -116,7 +165,6 @@ def evalFitness(players):
         pot = 0
         deck = initialDeck[:]
         random.shuffle(deck)
-        bets = [0] * numberPlayersPerGame
         hands = []
         for i in range(0, numberPlayersPerGame):
             hands.append([])
@@ -124,189 +172,43 @@ def evalFitness(players):
         playerStillInHand = playerStillInGame[:]
 
         # Deal initial cards and get all players' bets
-        for i in range(0,3):
+        for i in range(0,2):
             for h in hands:
                 h.append(deck.pop())
 
         # Collect all initial bets
-        playerBettingIndex = 0
-        lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-        collectingBets = True
-        while collectingBets:
-            if playerStillInHand[playerBettingIndex] and playerStillInHand.count(True) > 1:
-
-                environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney, playerBettingIndex, playersMoney[playerBettingIndex], bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
-                thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
-                thisPlayersDecision = (thisPlayersDecision[0] % 3, thisPlayersDecision[1])
-                amountToBet = 0
-
-                # Get player's decision
-                if thisPlayersDecision[0] == 0:
-                    amountToBet = max(bets) - bets[playerBettingIndex]
-                elif thisPlayersDecision[0] ==  1:
-                    amountToBet = thisPlayersDecision[1] + max(bets) - bets[playerBettingIndex]
-                    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-                elif thisPlayersDecision[0] == 2:
-                    playerStillInHand[playerBettingIndex] = False
-
-                if playerStillInHand[playerBettingIndex]:
-                    # Cap bet to amount of money player has left
-                    amountToBet = min(amountToBet, playersMoney[playerBettingIndex])
-                    playersMoney[playerBettingIndex] -= amountToBet
-                    bets[playerBettingIndex] += amountToBet
-
-                    # If the player has not met the minimum bet to stay in the game, they fold automatically
-                    if bets[playerBettingIndex] < max(bets):
-                        playerStillInHand[playerBettingIndex] = False
-
-            # Stop collecting bets if we have reached the last player we need a bet from
-            if playerBettingIndex == lastPlayerToCollectBetsFromIndex:
-                collectingBets = False
-
-            playerBettingIndex += 1
-            playerBettingIndex %= numberPlayersPerGame
+        bets = getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand)
 
         # Add collected bets to the pot
         pot += sum(bets)
-        bets = [0] * numberPlayersPerGame
 
         # Draw the first three public cards
-        for i in range(0, 2):
+        for i in range(0, 3):
             publicCards.append(deck.pop())
 
         # Collect the next round of bets
-        playerBettingIndex = 0
-        lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-        collectingBets = True
-        while collectingBets:
-            if playerStillInHand[playerBettingIndex] and playerStillInHand.count(True) > 1:
-
-                environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney,
-                               playerStillInHand[playerBettingIndex], playerBettingIndex, playersMoney[playerBettingIndex],
-                               bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
-                thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
-                amountToBet = 0
-
-                # Get player's decision
-                if thisPlayersDecision[0] == 0:
-                    amountToBet = max(bets) - bets[playerBettingIndex]
-                elif thisPlayersDecision[0] == 1:
-                    amountToBet = thisPlayersDecision[1]
-                    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-                elif thisPlayersDecision[0] == 2:
-                    playerStillInHand[playerBettingIndex] = False
-
-                # Cap bet to amount of money player has left
-                amountToBet = min(amountToBet, playersMoney[playerBettingIndex])
-                playersMoney[playerBettingIndex] -= amountToBet
-                bets[playerBettingIndex] += amountToBet
-
-                # If the player has not met the minimum bet to stay in the game, they fold automatically
-                if bets[playerBettingIndex] < max(bets):
-                    playerStillInHand[playerBettingIndex] = False
-
-            # Stop collecting bets if we have reached the last player we need a bet from
-            if playerBettingIndex == lastPlayerToCollectBetsFromIndex:
-                collectingBets = False
-
-            playerBettingIndex += 1
-            playerBettingIndex %= numberPlayersPerGame
+        bets = getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand)
 
         # Add collected bets to the pot
         pot += sum(bets)
-        bets = [0] * numberPlayersPerGame
-
 
         # Draw the fourth public card
         publicCards.append(deck.pop())
 
         # Collect the next round of bets
-        playerBettingIndex = 0
-        lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-        collectingBets = True
-        while collectingBets:
-            if playerStillInHand[playerBettingIndex]  and playerStillInHand.count(True) > 1:
-
-                environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney,
-                               playerStillInHand[playerBettingIndex], playerBettingIndex, playersMoney[playerBettingIndex],
-                               bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
-                thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
-                amountToBet = 0
-
-                # Get player's decision
-                if thisPlayersDecision[0] == 0:
-                    amountToBet = max(bets) - bets[playerBettingIndex]
-                elif thisPlayersDecision[0] == 1:
-                    amountToBet = thisPlayersDecision[1]
-                    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-                elif thisPlayersDecision[0] == 2:
-                    playerStillInHand[playerBettingIndex] = False
-
-                # Cap bet to amount of money player has left
-                amountToBet = min(amountToBet, playersMoney[playerBettingIndex])
-                playersMoney[playerBettingIndex] -= amountToBet
-                bets[playerBettingIndex] += amountToBet
-
-                # If the player has not met the minimum bet to stay in the game, they fold automatically
-                if bets[playerBettingIndex] < max(bets):
-                    playerStillInHand[playerBettingIndex] = False
-
-            # Stop collecting bets if we have reached the last player we need a bet from
-            if playerBettingIndex == lastPlayerToCollectBetsFromIndex:
-                collectingBets = False
-
-            playerBettingIndex += 1
-            playerBettingIndex %= numberPlayersPerGame
+        bets = getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand)
 
         # Add collected bets to the pot
         pot += sum(bets)
-        bets = [0] * numberPlayersPerGame
-
 
         # Draw the fifth public card
         publicCards.append(deck.pop())
 
         # Collect the last round of bets
-        playerBettingIndex = 0
-        lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-        collectingBets = True
-        while collectingBets:
-            if playerStillInHand[playerBettingIndex] and playerStillInHand.count(True) > 1:
-
-                environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney,
-                               playerStillInHand[playerBettingIndex], playerBettingIndex, playersMoney[playerBettingIndex],
-                               bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
-                thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
-                amountToBet = 0
-
-                # Get player's decision
-                if thisPlayersDecision[0] == 0:
-                    amountToBet = max(bets) - bets[playerBettingIndex]
-                elif thisPlayersDecision[0] == 1:
-                    amountToBet = thisPlayersDecision[1]
-                    lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
-                elif thisPlayersDecision[0] == 2:
-                    playerStillInHand[playerBettingIndex] = False
-
-                # Cap bet to amount of money player has left
-                amountToBet = min(amountToBet, playersMoney[playerBettingIndex])
-                playersMoney[playerBettingIndex] -= amountToBet
-                bets[playerBettingIndex] += amountToBet
-
-                # If the player has not met the minimum bet to stay in the game, they fold automatically
-                if bets[playerBettingIndex] < max(bets):
-                    playerStillInHand[playerBettingIndex] = False
-
-            # Stop collecting bets if we have reached the last player we need a bet from
-            if playerBettingIndex == lastPlayerToCollectBetsFromIndex:
-                collectingBets = False
-
-            playerBettingIndex += 1
-            playerBettingIndex %= numberPlayersPerGame
+        bets = getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand)
 
         # Add collected bets to the pot
         pot += sum(bets)
-        bets = [0] * numberPlayersPerGame
 
         # Get the scores for everyone's hands by scoring every combination of possible 5-card hands for each player
         handScores = [0] * numberPlayersPerGame
