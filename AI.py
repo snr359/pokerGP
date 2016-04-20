@@ -10,17 +10,22 @@ from scorePokerHand import *
 
 memorySize = 256
 
+boolToInt = {True: 1, False: 0}
+
 numberPlayersPerGame = 6
 handLimit = 10
 initialMoney = 100
+ante = 5
+
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
 populationSize = 50
-numberGenerations = 20
+numberGenerations = 200
 numberChildrenPerGeneration = 50
 numberEvaluationsPerMember = 20
-parsimonyPressure = .0005
+parsimonyPressure = .1
 maxAncestorsUsed = 30
+KTournamentK = 10
 
 mutationChance = .02
 mutationTreeDepth = 5
@@ -35,10 +40,11 @@ class AI:
         self.fitnessRatings = []
         self.fitness = 0
         self.memory = [0]*memorySize
+        self.parents = []
     def clearFitness(self):
         self.fitnessRatings = []
         self.fitness = 0
-    def clearMem(self):
+    def clearMemory(self):
         self.memory = [0]*memorySize
     def getDecision(self, environment):
         return self.baseNode.get(self.memory, environment)
@@ -108,10 +114,14 @@ def getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand):
     playerBettingIndex = 0
     lastPlayerToCollectBetsFromIndex = (playerBettingIndex - 1) % numberPlayersPerGame
     collectingBets = True
+    playerStillInHandInt = [0]*numberPlayersPerGame
     while collectingBets:
         if playerStillInHand[playerBettingIndex] and playerStillInHand.count(True) > 1:
 
-            environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney, playerBettingIndex, playersMoney[playerBettingIndex], bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
+            for i in range(0, numberPlayersPerGame):
+                playerStillInHandInt[i] = boolToInt[playerStillInHand[i]]
+
+            environment = [hands[playerBettingIndex], len(publicCards), publicCards, bets, playersMoney, playerStillInHandInt, playerBettingIndex, playersMoney[playerBettingIndex], bets[playerBettingIndex], max(bets) - bets[playerBettingIndex], pot]
             thisPlayersDecision = players[playerBettingIndex].getDecision(environment)
             thisPlayersDecision = (thisPlayersDecision[0] % 3, thisPlayersDecision[1])
             amountToBet = 0
@@ -171,6 +181,17 @@ def evalFitness(players):
         publicCards = []
         playerStillInHand = playerStillInGame[:]
 
+        # Collect antes
+        for i in range(0, numberPlayersPerGame):
+            if playersMoney[i] < ante:
+                pot += playersMoney[i]
+                playersMoney[i] = 0
+                playerStillInHand[i] = False
+                playerStillInGame[i] = False
+            else:
+                playersMoney[i] -= ante
+                pot += ante
+
         # Deal initial cards and get all players' bets
         for i in range(0,2):
             for h in hands:
@@ -213,8 +234,9 @@ def evalFitness(players):
         # Get the scores for everyone's hands by scoring every combination of possible 5-card hands for each player
         handScores = [0] * numberPlayersPerGame
         for i in range(0, numberPlayersPerGame):
-            handCombos = list(itertools.combinations(hands[i] + publicCards, 5))
-            handScores[i] = max(scoreHand(hc) for hc in handCombos)
+            if playerStillInHand[i]:
+                handCombos = list(itertools.combinations(hands[i] + publicCards, 5))
+                handScores[i] = max(scoreHand(hc) for hc in handCombos)
 
         # Calculate the winning score and number of winners
         winningScore = max(handScores)
@@ -369,20 +391,17 @@ def simplifyTree(AI, tree):
             AI.replaceNode(tree, tree.branches[2])
 
                     
-def KTournamentSelection(population, numToSelect):
+def KTournamentSelection(population, numToSelect, K):
     """
     Selects a number of population members with K tournament selection, assuming fitness is already calculated
     Goes faster if population is already sorted by fitness, descending
     """
     results = []
     for i in range(0, numToSelect):
-        rnd = random.random() * sum([p.fitness for p in population if p not in results])
-        for p in population:
-            if p not in results:
-                rnd -= p.fitness
-                if rnd < 0:
-                    results.append(p)
-                    break
+        tournament = random.sample((p for p in population if p not in results), K)
+        selectedIndividual = next(p for p in tournament if p.fitness == max(p.fitness for p in tournament))
+        results.append(selectedIndividual)
+
     return results
 
 def printDecisionTree(tree, numIndents=0):
@@ -396,7 +415,7 @@ def printDecisionTree(tree, numIndents=0):
 # MAIN ------------------------------------------------------------------------------------------
 
 startTime = time.time()
-random.seed(0)
+random.seed(1)
 # generate initial population
 population = []
 for i in range(0, populationSize):
@@ -418,9 +437,13 @@ for j in range(0, numberGenerations):
     # Population should already be sorted by fitness, descending, from survivor selection
     print("    Generating children...")
     for k in range(0, int(numberChildrenPerGeneration/2)):
-        parent1, parent2 = KTournamentSelection(population, 2)
-        newChild1 = copy.deepcopy(parent1)
-        newChild2 = copy.deepcopy(parent2)
+        parent1, parent2 = KTournamentSelection(population, 2, KTournamentK)
+        newChild1 = AI()
+        newChild1.baseNode = copy.deepcopy(parent1.baseNode)
+        newChild2 = AI()
+        newChild2.baseNode = copy.deepcopy(parent2.baseNode)
+        newChild1.parents = [parent1, parent2]
+        newChild2.parents = [parent1, parent2]
         recombine(newChild1, newChild2, mutationTreeDepth, mutationTerminateChance)
         population.append(newChild1)
         population.append(newChild2)
