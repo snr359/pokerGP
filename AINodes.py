@@ -259,7 +259,7 @@ class readEnvironmentNode:
                 b = self.branches[1].get(memory, environment) % len(environment[a])
                 c = self.branches[2].get(memory, environment) % len(environment[a][b])
                 value = environment[a][b][c]
-        elif a in (3, 4):
+        elif a in (3, 4, 5):
             b = self.branches[1].get(memory, environment) % len(environment[a])
             value = environment[a][b]
         else:

@@ -31,8 +31,10 @@ Poker Environment Data Indexes
     0-NumPlayers = Player Index
 4 = Current Money
     0-NumPlayers = Player Index
-5 = Self Index
-6 = Own Money
-7 - Own Bet
-8 - Amount to call
-9 = Current Pot
+5 = Player Still in Hand
+    0-NumPlayers = Player Index
+6 = Self Index
+7 = Own Money
+8 - Own Bet
+9 - Amount to call
+10 = Current Pot

@@ -85,7 +85,7 @@ def scoreHighCord(hand):
     return 100000000*hand[0][1] + 1000000*hand[1][1] + 10000*hand[2][1] + 100*hand[3][1] + hand[4][1]
 
 def scoreHand(hand):
-    # returns the score of a poker hand
+    # returns the score of a 5-card poker hand
     hand = list(hand)
     hand.sort(key=lambda x: x[1], reverse=True)
     score = scoreStraightFlush(hand)
