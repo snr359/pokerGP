@@ -19,12 +19,12 @@ ante = 5
 
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
-populationSize = 50
+populationSize = 300
 numberGenerations = 200
-numberChildrenPerGeneration = 50
-numberEvaluationsPerMember = 20
-parsimonyPressure = .1
-maxAncestorsUsed = 30
+numberChildrenPerGeneration = 300
+numberEvaluationsPerMember = 30
+parsimonyPressure = .001
+maxAncestorsUsed = 50
 KTournamentK = 10
 
 mutationChance = .02
@@ -394,11 +394,10 @@ def simplifyTree(AI, tree):
 def KTournamentSelection(population, numToSelect, K):
     """
     Selects a number of population members with K tournament selection, assuming fitness is already calculated
-    Goes faster if population is already sorted by fitness, descending
     """
     results = []
     for i in range(0, numToSelect):
-        tournament = random.sample((p for p in population if p not in results), K)
+        tournament = random.sample(list(p for p in population if p not in results), K)
         selectedIndividual = next(p for p in tournament if p.fitness == max(p.fitness for p in tournament))
         results.append(selectedIndividual)
 
@@ -460,7 +459,6 @@ for j in range(0, numberGenerations):
         simplifyTree(p, p.baseNode)
 			
     # Fitness evaluation
-    print("    Population length: " + str(len(population)))
     print("    Evaluating population...")
     evalPopulation(population, bestAncestors, numberEvaluationsPerMember)
 
