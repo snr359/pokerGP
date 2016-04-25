@@ -3,25 +3,26 @@ import statistics
 import time
 import copy
 import itertools
-from multiprocessing import Pool as ThreadPool
+import pickle
+import time
+import os
+##from multiprocessing import Pool as ThreadPool
 from AINodes import *
 from scorePokerHand import *
 
+boolToInt = {True: 1, False: 0}
+initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
 memorySize = 256
-
-boolToInt = {True: 1, False: 0}
 
 numberPlayersPerGame = 6
 handLimit = 10
 initialMoney = 100
 ante = 5
 
-initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
-
-populationSize = 300
-numberGenerations = 200
-numberChildrenPerGeneration = 300
+populationSize = 30
+numberGenerations = 1
+numberChildrenPerGeneration = 30
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
 maxAncestorsUsed = 50
@@ -231,12 +232,12 @@ def evalFitness(players):
         # Add collected bets to the pot
         pot += sum(bets)
 
-        # Get the scores for everyone's hands by scoring every combination of possible 5-card hands for each player
+        # Get the scores for everyone's hands
         handScores = [0] * numberPlayersPerGame
         for i in range(0, numberPlayersPerGame):
             if playerStillInHand[i]:
-                handCombos = list(itertools.combinations(hands[i] + publicCards, 5))
-                handScores[i] = max(scoreHand(hc) for hc in handCombos)
+                sevenHand = hands[i] + publicCards
+                handScores[i] = scoreSevenHand(sevenHand)
 
         # Calculate the winning score and number of winners
         winningScore = max(handScores)
@@ -413,8 +414,54 @@ def printDecisionTree(tree, numIndents=0):
 
 # MAIN ------------------------------------------------------------------------------------------
 
+randomSeed = 0
+
 startTime = time.time()
-random.seed(1)
+random.seed(randomSeed)
+
+# make directory for run info
+directoryName = 'run_' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
+os.mkdir(directoryName)
+
+# write info file in the directory
+infoFilePath = directoryName + '/info.txt'
+infoFile = open(infoFilePath, 'w')
+for varName, varVal in zip(
+        ['Random seed',
+         'Memory size',
+         'Number of players per game',
+         'Hand limit','Initial money',
+         'Ante',
+         'Population size',
+         'Number of generations',
+         'Number of children per generation',
+         'Number of evaluations per member',
+         'Parsimony pressure',
+         'Maximum ancestors used',
+         'K tournament size',
+         'Mutation chance',
+         'Mutation tree depth',
+         'Mutation terminate chance'],
+
+        [randomSeed,
+         memorySize,
+         numberPlayersPerGame,
+         handLimit,
+         initialMoney,
+         ante,
+         populationSize,
+         numberGenerations,
+         numberChildrenPerGeneration,
+         numberEvaluationsPerMember,
+         parsimonyPressure,
+         maxAncestorsUsed,
+         KTournamentK,
+         mutationChance,
+         mutationTreeDepth,
+         mutationTerminateChance]):
+    infoFile.write(varName + ': ' + str(varVal) + '\n')
+
+
 # generate initial population
 population = []
 for i in range(0, populationSize):
@@ -476,4 +523,7 @@ best = population[0]
 printDecisionTree(best.baseNode)
 print("Final fitness: " + str(best.fitness))
 
-print("Time elapsed: " + str(time.time() - startTime))
+runTime = time.time() - startTime
+print("Time elapsed: " + str(runTime))
+infoFile.write('Run time: ' + str(runTime))
+infoFile.close()

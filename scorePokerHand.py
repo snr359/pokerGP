@@ -1,3 +1,5 @@
+import itertools
+
 def scoreStraightFlush(hand):
     # detects if a sorted poker hand is a straight flush and returns the score
     if all(c[0] == hand[0][0] for c in hand):
@@ -84,7 +86,7 @@ def scoreHighCord(hand):
     # returns the score of a high card sorted poker hand
     return 100000000*hand[0][1] + 1000000*hand[1][1] + 10000*hand[2][1] + 100*hand[3][1] + hand[4][1]
 
-def scoreHand(hand):
+def scoreFiveHand(hand):
     # returns the score of a 5-card poker hand
     hand = list(hand)
     hand.sort(key=lambda x: x[1], reverse=True)
@@ -106,3 +108,10 @@ def scoreHand(hand):
     if score == 0:
         score = scoreHighCord(hand)
     return score
+
+def scoreSevenHand(hand):
+    """
+    Returns the score for a seven-card poker hand
+    """
+    handCombos = list(itertools.combinations(hand, 5))
+    return max(scoreFiveHand(hc) for hc in handCombos)
