@@ -13,20 +13,21 @@ from scorePokerHand import *
 boolToInt = {True: 1, False: 0}
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
-memorySize = 256
+memorySize = 16
 
 numberPlayersPerGame = 6
 handLimit = 10
 initialMoney = 100
 ante = 5
 
-populationSize = 30
-numberGenerations = 1
-numberChildrenPerGeneration = 30
+populationSize = 300
+numberGenerations = 300
+maxRunTime =
+numberChildrenPerGeneration = 300
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
 maxAncestorsUsed = 50
-KTournamentK = 10
+KTournamentK = 50
 
 mutationChance = .02
 mutationTreeDepth = 5
@@ -157,7 +158,6 @@ def getBets(players, hands, publicCards, playersMoney, pot, playerStillInHand):
 
     return bets
 
-
 def evalFitness(players):
     """
     Evaluates the fitness of the given AI players and records it in their fitness evaluations list by playing Texas Hold Em
@@ -264,6 +264,33 @@ def evalFitness(players):
     for i in range(0, numberPlayersPerGame):
         players[i].fitnessRatings.append(playersMoney[i])
 
+def evalFitnessAgainstParents(child):
+    """
+    Evaluates the fitness of an AI against its own parents and returns the relative fitness gain
+    """
+    if child.parents == []:
+        return 0
+    else:
+        childClones = []
+        parentClones = []
+        while len(childClones) + len(parentClones) < numberPlayersPerGame:
+            newChildClone = AI()
+            newChildClone.baseNode = copy.deepcopy(child.baseNode)
+            newParentClone1 = AI()
+            newParentClone1.baseNode = copy.deepcopy(child.parents[0].baseNode)
+            newParentClone2 = AI()
+            newParentClone2.baseNode = copy.deepcopy(child.parents[1].baseNode)
+            childClones.append(newChildClone)
+            parentClones.extend([newParentClone1, newParentClone2])
+        for i in range(0, numberEvaluationsPerMember):
+            evalFitness(childClones + parentClones)
+        for c in childClones:
+            c.fitness = statistics.mean(c.fitnessRatings)
+        for p in parentClones:
+            p.fitness = statistics.mean(p.fitnessRatings)
+        return statistics.mean(c.fitness for c in childClones) - statistics.mean(p.fitness for p in parentClones)
+
+
 
 def evalPopulation(population, bestAncestors, minimumEvaluations):
     """
@@ -276,8 +303,6 @@ def evalPopulation(population, bestAncestors, minimumEvaluations):
         ancestorsUsed = random.sample(bestAncestors, maxAncestorsUsed)
     else:
         ancestorsUsed = bestAncestors
-    for a in ancestorsUsed:
-        a.clearFitness()
     evalGroups = makeGroups(population + ancestorsUsed, numberPlayersPerGame, minimumEvaluations)
     ###if __name__ == '__main__':
     ###    evalPool = ThreadPool()
@@ -414,13 +439,15 @@ def printDecisionTree(tree, numIndents=0):
 
 # MAIN ------------------------------------------------------------------------------------------
 
-randomSeed = 0
+randomSeed = int(time.time())
 
 startTime = time.time()
 random.seed(randomSeed)
 
 # make directory for run info
-directoryName = 'run_' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
+if not os.path.isdir('runs'):
+    os.mkdir('runs')
+directoryName = 'runs/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
 os.mkdir(directoryName)
 
 # write info file in the directory
@@ -477,8 +504,8 @@ population.sort(key=lambda p: p.fitness, reverse=True)
 
 bestAncestors = []
 
-for j in range(0, numberGenerations):
-    print("Generation " + str(j))
+for i in range(0, numberGenerations):
+    print("Generation " + str(i))
     # Parent selection/children production
     # Population should already be sorted by fitness, descending, from survivor selection
     print("    Generating children...")
@@ -518,12 +545,27 @@ for j in range(0, numberGenerations):
     print("    Recording ancestor...")
     bestAncestors.append(population[0])
 
+    # Pickle population
+    print("    Pickling population...")
+    for p in population: # Erase grandparents to save memory
+        for pp in p.parents:
+            if pp not in population:
+                pp.parents = []
+    pickleFile = open(directoryName + '/gen' + str(i), 'wb')
+    pickle.dump(population, pickleFile)
+    pickleFile.close()
+
     
 best = population[0]
 printDecisionTree(best.baseNode)
 print("Final fitness: " + str(best.fitness))
 
+
+
 runTime = time.time() - startTime
 print("Time elapsed: " + str(runTime))
 infoFile.write('Run time: ' + str(runTime))
 infoFile.close()
+
+test = evalFitnessAgainstParents(population[0])
+print(test)
