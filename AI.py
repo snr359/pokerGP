@@ -20,10 +20,10 @@ handLimit = 10
 initialMoney = 100
 ante = 5
 
-populationSize = 300
-numberGenerations = 300
-maxRunTime =
-numberChildrenPerGeneration = 300
+populationSize = 600
+numberGenerations = 150
+maxRunTime = 3000
+numberChildrenPerGeneration = 600
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
 maxAncestorsUsed = 50
@@ -437,6 +437,24 @@ def printDecisionTree(tree, numIndents=0):
     for b in tree.branches:
         printDecisionTree(b, numIndents + 1)
 
+def testPops(population1, population2):
+    # tests two populations against each other
+    for p in population1:
+        p.clearFitness()
+    for p in population2:
+        p.clearFitness()
+
+    evalPopulation(population1 + population2, [], 50)
+
+    print("Population 1 average fitness: " + str(statistics.mean(p.fitness for p in population1)))
+    print("Population 2 average fitness: " + str(statistics.mean(p.fitness for p in population2)))
+
+    print("Population 1 max fitness: " + str(max(p.fitness for p in population1)))
+    print("Population 2 max fitness: " + str(max(p.fitness for p in population2)))
+
+# TESTING MAIN ----------------------------------------------------------------------------------
+
+##exit()
 # MAIN ------------------------------------------------------------------------------------------
 
 randomSeed = int(time.time())
@@ -554,6 +572,10 @@ for i in range(0, numberGenerations):
     pickleFile = open(directoryName + '/gen' + str(i), 'wb')
     pickle.dump(population, pickleFile)
     pickleFile.close()
+
+    if time.time() - startTime > maxRunTime:
+        print("Maximum run time reached")
+        break
 
     
 best = population[0]
