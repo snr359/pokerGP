@@ -21,12 +21,12 @@ initialMoney = 100
 ante = 5
 
 populationSize = 600
-numberGenerations = 150
-maxRunTime = 3000
+numberGenerations = 150000
+maxRunTime = 100000
 numberChildrenPerGeneration = 600
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
-maxAncestorsUsed = 50
+maxAncestorsUsed = 150
 KTournamentK = 50
 
 mutationChance = .02
@@ -505,7 +505,7 @@ for varName, varVal in zip(
          mutationTreeDepth,
          mutationTerminateChance]):
     infoFile.write(varName + ': ' + str(varVal) + '\n')
-
+infoFile.close()
 
 # generate initial population
 population = []
@@ -577,7 +577,8 @@ for i in range(0, numberGenerations):
         print("Maximum run time reached")
         break
 
-    
+finalResultFilePath =  directoryName + '/final.txt'
+finalResultFile = open(finalResultFilePath)
 best = population[0]
 printDecisionTree(best.baseNode)
 print("Final fitness: " + str(best.fitness))
@@ -586,8 +587,8 @@ print("Final fitness: " + str(best.fitness))
 
 runTime = time.time() - startTime
 print("Time elapsed: " + str(runTime))
-infoFile.write('Run time: ' + str(runTime))
-infoFile.close()
+finalResultFile.write('Run time: ' + str(runTime))
+finalResultFile.close()
 
 test = evalFitnessAgainstParents(population[0])
 print(test)
