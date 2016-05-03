@@ -21,12 +21,12 @@ initialMoney = 100
 ante = 5
 
 populationSize = 600
-numberGenerations = 150000
-maxRunTime = 100000
+numberGenerations = 10000
+maxRunTime = 9000
 numberChildrenPerGeneration = 600
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
-maxAncestorsUsed = 150
+maxAncestorsUsed = 50
 KTournamentK = 50
 
 mutationChance = .02
@@ -267,6 +267,7 @@ def evalFitness(players):
 def evalFitnessAgainstParents(child):
     """
     Evaluates the fitness of an AI against its own parents and returns the relative fitness gain
+    Does not affect child or parents
     """
     if child.parents == []:
         return 0
@@ -341,7 +342,7 @@ def recombine(AI1, AI2, defaultDepthLimit, defaultTerminateChance):
 
 def simplifyTree(AI, tree):
     """
-    # Removes redundancies in AI nodes
+    Removes redundancies in AI nodes
     """
     for b in tree.branches:
         simplifyTree(AI, b)    
@@ -578,7 +579,7 @@ for i in range(0, numberGenerations):
         break
 
 finalResultFilePath =  directoryName + '/final.txt'
-finalResultFile = open(finalResultFilePath)
+finalResultFile = open(finalResultFilePath, 'w')
 best = population[0]
 printDecisionTree(best.baseNode)
 print("Final fitness: " + str(best.fitness))
