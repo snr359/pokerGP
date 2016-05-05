@@ -21,13 +21,13 @@ initialMoney = 100
 ante = 5
 
 populationSize = 600
-numberGenerations = 10000
-maxRunTime = 9000
+numberGenerations = 600
+maxRunTime = 99999999999
 numberChildrenPerGeneration = 600
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
 maxAncestorsUsed = 50
-KTournamentK = 50
+KTournamentK = 100
 
 mutationChance = .02
 mutationTreeDepth = 5
@@ -269,7 +269,7 @@ def evalFitnessAgainstParents(child):
     Evaluates the fitness of an AI against its own parents and returns the relative fitness gain
     Does not affect child or parents
     """
-    if child.parents == []:
+    if not child.parents:
         return 0
     else:
         childClones = []
@@ -463,10 +463,11 @@ randomSeed = int(time.time())
 startTime = time.time()
 random.seed(randomSeed)
 
-# make directory for run info
-if not os.path.isdir('runs'):
-    os.mkdir('runs')
-directoryName = 'runs/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
+# make directory for run info\
+runsDirectory = 'E:/PokerGPResults/runs'
+if not os.path.isdir(runsDirectory):
+    os.mkdir(runsDirectory)
+directoryName = runsDirectory + '/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
 os.mkdir(directoryName)
 
 # write info file in the directory
@@ -591,5 +592,8 @@ print("Time elapsed: " + str(runTime))
 finalResultFile.write('Run time: ' + str(runTime))
 finalResultFile.close()
 
-test = evalFitnessAgainstParents(population[0])
-print(test)
+print("Recording best ancestors")
+ancestorsFile = open(directoryName + "/ancestors", 'wb')
+pickle.dump(bestAncestors, ancestorsFile)
+ancestorsFile.close()
+
