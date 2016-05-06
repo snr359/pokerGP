@@ -10,6 +10,12 @@ import os
 from AINodes import *
 from scorePokerHand import *
 
+phase = 2
+
+runsDirectory = 'E:/PokerGPResults/runs'
+runsDirectory2 = 'E:/PokerGPResults/runs2'
+phase2TargetDirectory = 'E:/PokerGPResults/runs/2016_05_05__10_47_22'
+
 boolToInt = {True: 1, False: 0}
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
@@ -32,6 +38,9 @@ KTournamentK = 100
 mutationChance = .02
 mutationTreeDepth = 5
 mutationTerminateChance = .1
+
+phase2NumChildrenToEvalPerGen = 5
+phase2NumChildrenToKeep = 300
 
 class AI:
     """
@@ -456,144 +465,168 @@ def testPops(population1, population2):
 # TESTING MAIN ----------------------------------------------------------------------------------
 
 ##exit()
+
 # MAIN ------------------------------------------------------------------------------------------
 
-randomSeed = int(time.time())
+if phase == 1:
+    randomSeed = int(time.time())
 
-startTime = time.time()
-random.seed(randomSeed)
+    startTime = time.time()
+    random.seed(randomSeed)
 
-# make directory for run info\
-runsDirectory = 'E:/PokerGPResults/runs'
-if not os.path.isdir(runsDirectory):
-    os.mkdir(runsDirectory)
-directoryName = runsDirectory + '/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
-os.mkdir(directoryName)
+    # make directory for run info
+    if not os.path.isdir(runsDirectory):
+        os.mkdir(runsDirectory)
+    directoryName = runsDirectory + '/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
+    os.mkdir(directoryName)
 
-# write info file in the directory
-infoFilePath = directoryName + '/info.txt'
-infoFile = open(infoFilePath, 'w')
-for varName, varVal in zip(
-        ['Random seed',
-         'Memory size',
-         'Number of players per game',
-         'Hand limit','Initial money',
-         'Ante',
-         'Population size',
-         'Number of generations',
-         'Number of children per generation',
-         'Number of evaluations per member',
-         'Parsimony pressure',
-         'Maximum ancestors used',
-         'K tournament size',
-         'Mutation chance',
-         'Mutation tree depth',
-         'Mutation terminate chance'],
+    # write info file in the directory
+    infoFilePath = directoryName + '/info.txt'
+    infoFile = open(infoFilePath, 'w')
+    for varName, varVal in zip(
+            ['Random seed',
+             'Memory size',
+             'Number of players per game',
+             'Hand limit','Initial money',
+             'Ante',
+             'Population size',
+             'Number of generations',
+             'Number of children per generation',
+             'Number of evaluations per member',
+             'Parsimony pressure',
+             'Maximum ancestors used',
+             'K tournament size',
+             'Mutation chance',
+             'Mutation tree depth',
+             'Mutation terminate chance'],
 
-        [randomSeed,
-         memorySize,
-         numberPlayersPerGame,
-         handLimit,
-         initialMoney,
-         ante,
-         populationSize,
-         numberGenerations,
-         numberChildrenPerGeneration,
-         numberEvaluationsPerMember,
-         parsimonyPressure,
-         maxAncestorsUsed,
-         KTournamentK,
-         mutationChance,
-         mutationTreeDepth,
-         mutationTerminateChance]):
-    infoFile.write(varName + ': ' + str(varVal) + '\n')
-infoFile.close()
+            [randomSeed,
+             memorySize,
+             numberPlayersPerGame,
+             handLimit,
+             initialMoney,
+             ante,
+             populationSize,
+             numberGenerations,
+             numberChildrenPerGeneration,
+             numberEvaluationsPerMember,
+             parsimonyPressure,
+             maxAncestorsUsed,
+             KTournamentK,
+             mutationChance,
+             mutationTreeDepth,
+             mutationTerminateChance]):
+        infoFile.write(varName + ': ' + str(varVal) + '\n')
+    infoFile.close()
 
-# generate initial population
-population = []
-for i in range(0, populationSize):
-    newAI = AI()
-    newAI.baseNode = generateRandomDecisionTree('action', mutationTreeDepth, mutationTerminateChance)
-    population.append(newAI)
+    # generate initial population
+    population = []
+    for i in range(0, populationSize):
+        newAI = AI()
+        newAI.baseNode = generateRandomDecisionTree('action', mutationTreeDepth, mutationTerminateChance)
+        population.append(newAI)
 
-print("Initial population evaluation...")
+    print("Initial population evaluation...")
 
-# evaluate and sort initial population
-evalPopulation(population, [], numberEvaluationsPerMember)
-population.sort(key=lambda p: p.fitness, reverse=True)
-
-bestAncestors = []
-
-for i in range(0, numberGenerations):
-    print("Generation " + str(i))
-    # Parent selection/children production
-    # Population should already be sorted by fitness, descending, from survivor selection
-    print("    Generating children...")
-    for k in range(0, int(numberChildrenPerGeneration/2)):
-        parent1, parent2 = KTournamentSelection(population, 2, KTournamentK)
-        newChild1 = AI()
-        newChild1.baseNode = copy.deepcopy(parent1.baseNode)
-        newChild2 = AI()
-        newChild2.baseNode = copy.deepcopy(parent2.baseNode)
-        newChild1.parents = [parent1, parent2]
-        newChild2.parents = [parent1, parent2]
-        recombine(newChild1, newChild2, mutationTreeDepth, mutationTerminateChance)
-        population.append(newChild1)
-        population.append(newChild2)
-
-    # Population mutation
-    print("    Mutating...")
-    for p in population:
-        if random.random() < mutationChance:
-            mutate(p, mutationTreeDepth, mutationTerminateChance)
-            
-    # Population simplification
-    print("    Simplifying...")
-    for p in population:
-        simplifyTree(p, p.baseNode)
-			
-    # Fitness evaluation
-    print("    Evaluating population...")
-    evalPopulation(population, bestAncestors, numberEvaluationsPerMember)
-
-    # Survivor selection
-    print("    Selecting survivors...")
+    # evaluate and sort initial population
+    evalPopulation(population, [], numberEvaluationsPerMember)
     population.sort(key=lambda p: p.fitness, reverse=True)
-    population = population[:populationSize]
-	
-    # Best ancestor recording
-    print("    Recording ancestor...")
-    bestAncestors.append(population[0])
 
-    # Pickle population
-    print("    Pickling population...")
-    for p in population: # Erase grandparents to save memory
-        for pp in p.parents:
-            if pp not in population:
-                pp.parents = []
-    pickleFile = open(directoryName + '/gen' + str(i), 'wb')
-    pickle.dump(population, pickleFile)
-    pickleFile.close()
+    bestAncestors = []
 
-    if time.time() - startTime > maxRunTime:
-        print("Maximum run time reached")
-        break
+    for i in range(0, numberGenerations):
+        print("Generation " + str(i))
+        # Parent selection/children production
+        # Population should already be sorted by fitness, descending, from survivor selection
+        print("    Generating children...")
+        for k in range(0, int(numberChildrenPerGeneration/2)):
+            parent1, parent2 = KTournamentSelection(population, 2, KTournamentK)
+            newChild1 = AI()
+            newChild1.baseNode = copy.deepcopy(parent1.baseNode)
+            newChild2 = AI()
+            newChild2.baseNode = copy.deepcopy(parent2.baseNode)
+            newChild1.parents = [parent1, parent2]
+            newChild2.parents = [parent1, parent2]
+            recombine(newChild1, newChild2, mutationTreeDepth, mutationTerminateChance)
+            population.append(newChild1)
+            population.append(newChild2)
 
-finalResultFilePath =  directoryName + '/final.txt'
-finalResultFile = open(finalResultFilePath, 'w')
-best = population[0]
-printDecisionTree(best.baseNode)
-print("Final fitness: " + str(best.fitness))
+        # Population mutation
+        print("    Mutating...")
+        for p in population:
+            if random.random() < mutationChance:
+                mutate(p, mutationTreeDepth, mutationTerminateChance)
+
+        # Population simplification
+        print("    Simplifying...")
+        for p in population:
+            simplifyTree(p, p.baseNode)
+
+        # Fitness evaluation
+        print("    Evaluating population...")
+        evalPopulation(population, bestAncestors, numberEvaluationsPerMember)
+
+        # Survivor selection
+        print("    Selecting survivors...")
+        population.sort(key=lambda p: p.fitness, reverse=True)
+        population = population[:populationSize]
+
+        # Best ancestor recording
+        print("    Recording ancestor...")
+        bestAncestors.append(population[0])
+
+        # Pickle population
+        print("    Pickling population...")
+        for p in population: # Erase grandparents to save memory
+            for pp in p.parents:
+                if pp not in population:
+                    pp.parents = []
+        pickleFile = open(directoryName + '/gen' + str(i), 'wb')
+        pickle.dump(population, pickleFile)
+        pickleFile.close()
+
+        if time.time() - startTime > maxRunTime:
+            print("Maximum run time reached")
+            break
+
+    finalResultFilePath =  directoryName + '/final.txt'
+    finalResultFile = open(finalResultFilePath, 'w')
+    best = population[0]
+    printDecisionTree(best.baseNode)
+    print("Final fitness: " + str(best.fitness))
 
 
 
-runTime = time.time() - startTime
-print("Time elapsed: " + str(runTime))
-finalResultFile.write('Run time: ' + str(runTime))
-finalResultFile.close()
+    runTime = time.time() - startTime
+    print("Time elapsed: " + str(runTime))
+    finalResultFile.write('Run time: ' + str(runTime))
+    finalResultFile.close()
 
-print("Recording best ancestors")
-ancestorsFile = open(directoryName + "/ancestors", 'wb')
-pickle.dump(bestAncestors, ancestorsFile)
-ancestorsFile.close()
+    print("Recording best ancestors")
+    ancestorsFile = open(directoryName + "/ancestors", 'wb')
+    pickle.dump(bestAncestors, ancestorsFile)
+    ancestorsFile.close()
 
+elif phase == 2:
+    pop_scorePairs = []
+    for i in range(300):
+        print("Evaluating best " + str(phase2NumChildrenToEvalPerGen) + " children: generation " + str(i))
+
+        popFilePath = phase2TargetDirectory + "/gen" + str(i)
+        popFile = open(popFilePath, 'rb')
+        population = pickle.load(popFile)
+        popFile.close()
+
+        for p in population[0:phase2NumChildrenToEvalPerGen]:
+            versusParentsScore = evalFitnessAgainstParents(p)
+            totalScore = max(versusParentsScore + p.fitness, 0)
+            pop_scorePairs.append((p, totalScore))
+
+        if len(pop_scorePairs) > phase2NumChildrenToKeep:
+            pop_scorePairs.sort(reverse=True)
+            pop_scorePairs = pop_scorePairs[0:phase2NumChildrenToKeep]
+
+    outputFilePath = runsDirectory2 + "/" + phase2TargetDirectory.split('/')[-1]
+    outputFile = open(outputFilePath, 'wb')
+    pickle.dump(pop_scorePairs, outputFile)
+    outputFile.close()
