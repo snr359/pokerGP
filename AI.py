@@ -10,12 +10,6 @@ import os
 from AINodes import *
 from scorePokerHand import *
 
-phase = 2
-
-runsDirectory = 'E:/PokerGPResults/runs'
-runsDirectory2 = 'E:/PokerGPResults/runs2'
-phase2TargetDirectory = 'E:/PokerGPResults/runs/2016_05_05__10_47_22'
-
 boolToInt = {True: 1, False: 0}
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
 
@@ -27,7 +21,7 @@ initialMoney = 100
 ante = 5
 
 populationSize = 600
-numberGenerations = 600
+numberGenerations = 300
 maxRunTime = 99999999999
 numberChildrenPerGeneration = 600
 numberEvaluationsPerMember = 30
@@ -38,9 +32,6 @@ KTournamentK = 100
 mutationChance = .02
 mutationTreeDepth = 5
 mutationTerminateChance = .1
-
-phase2NumChildrenToEvalPerGen = 5
-phase2NumChildrenToKeep = 300
 
 class AI:
     """
@@ -463,18 +454,16 @@ def testPops(population1, population2):
     print("Population 2 max fitness: " + str(max(p.fitness for p in population2)))
 
 # TESTING MAIN ----------------------------------------------------------------------------------
-
 ##exit()
-
 # MAIN ------------------------------------------------------------------------------------------
-
-if phase == 1:
+for z in range(0,2):
     randomSeed = int(time.time())
 
     startTime = time.time()
     random.seed(randomSeed)
 
-    # make directory for run info
+    # make directory for run info\
+    runsDirectory = 'C:/CS6401Results/runs'
     if not os.path.isdir(runsDirectory):
         os.mkdir(runsDirectory)
     directoryName = runsDirectory + '/' + time.strftime(str('%Y_%m_%d__%H_%M_%S'))
@@ -607,26 +596,3 @@ if phase == 1:
     pickle.dump(bestAncestors, ancestorsFile)
     ancestorsFile.close()
 
-elif phase == 2:
-    pop_scorePairs = []
-    for i in range(300):
-        print("Evaluating best " + str(phase2NumChildrenToEvalPerGen) + " children: generation " + str(i))
-
-        popFilePath = phase2TargetDirectory + "/gen" + str(i)
-        popFile = open(popFilePath, 'rb')
-        population = pickle.load(popFile)
-        popFile.close()
-
-        for p in population[0:phase2NumChildrenToEvalPerGen]:
-            versusParentsScore = evalFitnessAgainstParents(p)
-            totalScore = max(versusParentsScore + p.fitness, 0)
-            pop_scorePairs.append((p, totalScore))
-
-        if len(pop_scorePairs) > phase2NumChildrenToKeep:
-            pop_scorePairs.sort(reverse=True)
-            pop_scorePairs = pop_scorePairs[0:phase2NumChildrenToKeep]
-
-    outputFilePath = runsDirectory2 + "/" + phase2TargetDirectory.split('/')[-1]
-    outputFile = open(outputFilePath, 'wb')
-    pickle.dump(pop_scorePairs, outputFile)
-    outputFile.close()
