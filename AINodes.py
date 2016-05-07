@@ -1,6 +1,7 @@
 import random
 import statistics
-memorySize = 256
+from scorePokerHand import *
+memorySize = 16
 
 class ifNodeNumber:
     """
@@ -323,3 +324,22 @@ class constantActionNode:
         self.op = 'const action ' + str(self.value[0]) + ' ' + str(self.value[1])
     def get(self, memory, environment):
         return self.value
+
+class estimateHandValueNode:
+    def __init__(self):
+        self.returnType = 'number'
+        self.branchTypes = []
+        self.branches = []
+        self.isTerminal = True
+        self.parent = None
+        self.parentBranchIndex = -1
+        self.op = 'estimate hand value'
+    def get(self, memory, environment):
+        if len(environment[2]) == 0:
+            return 0
+        elif len(environment[2]) == 3:
+            hand = environment[0] + environment[2]
+            return scoreFiveHand(hand)
+        else:
+            hand = environment[0] + environment[2]
+            return scoreSevenHand(hand)
