@@ -7,6 +7,7 @@ import pickle
 import time
 import os
 import sys
+import gc
 ##from multiprocessing import Pool as ThreadPool
 from AINodes import *
 from scorePokerHand import *
@@ -29,10 +30,10 @@ handLimit = 10
 initialMoney = 100
 ante = 5
 
-populationSize = 600
+populationSize = 300
 numberGenerations = 300
 maxRunTime = 99999999999
-numberChildrenPerGeneration = 600
+numberChildrenPerGeneration = 300
 numberEvaluationsPerMember = 30
 parsimonyPressure = .001
 maxAncestorsUsed = 50
@@ -768,17 +769,22 @@ elif phase == 3:
 	seedFile = open(phase3SeedFilePath, 'rb')
 	population1SeedsList = pickle.load(seedFile)
 	population1SeedsList.sort(key=lambda x: x[1], reverse=True)
-	population1Seeds = list(p[0] for p in population1SeedsList)
+	population1Seeds = list(p[0] for p in population1SeedsList)[0:phase3NumSeedCandidates]
 	seedFile.close()
 	for i in range(0, int(populationSize/2)):
 		newAI1 = AI()
 		newAI1.baseNode = generateRandomDecisionTree('action', mutationTreeDepth, mutationTerminateChance, False)
 		newAI2 = AI()
-		newAI2baseSeed = random.choice(population1Seeds[0:phase3NumSeedCandidates])
+		newAI2baseSeed = random.choice(population1Seeds)
 		newAI2.baseNode = copy.deepcopy(newAI2baseSeed.baseNode)
 		recombine(newAI1, newAI2, mutationTreeDepth, mutationTerminateChance, False)
 		population1.append(newAI1)
 		population1.append(newAI2)
+	del population1SeedsList[:]
+	del population1Seeds[:]
+	del population1SeedsList
+	del population1Seeds
+	gc.collect()
 
 	population2 = []
 	for i in range(0, populationSize):
