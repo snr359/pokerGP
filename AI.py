@@ -17,7 +17,7 @@ runsDirectory = 'E:/PokerGPResults/runs'
 runsDirectory2 = 'E:/PokerGPResults/runs2'
 runsDirectory3 = 'C:/CS6401Results/runs3'
 phase2TargetDirectory = 'E:/PokerGPResults/runs/2016_05_05__10_47_22'
-phase3SeedFilePath = 'C:/CS6401Results/runs2/ ' + sys.argv[1]
+phase3SeedFilePath = 'C:/CS6401Results/runs2/' + sys.argv[1]
 
 boolToInt = {True: 1, False: 0}
 initialDeck = [(0, 2) ,(0, 3) ,(0, 4) ,(0, 5) ,(0, 6) ,(0, 7) ,(0, 8) ,(0, 9) ,(0, 10) ,(0, 11) ,(0, 12) ,(0, 13) ,(0, 14) ,(1, 2) ,(1, 3) ,(1, 4) ,(1, 5) ,(1, 6) ,(1, 7) ,(1, 8) ,(1, 9) ,(1, 10) ,(1, 11) ,(1, 12) ,(1, 13) ,(1, 14) ,(2, 2) ,(2, 3) ,(2, 4) ,(2, 5) ,(2, 6) ,(2, 7) ,(2, 8) ,(2, 9) ,(2, 10) ,(2, 11) ,(2, 12) ,(2, 13) ,(2, 14) ,(3, 2) ,(3, 3) ,(3, 4) ,(3, 5) ,(3, 6) ,(3, 7) ,(3, 8) ,(3, 9) ,(3, 10) ,(3, 11) ,(3, 12) ,(3, 13) ,(3, 14)]
@@ -865,21 +865,23 @@ elif phase == 3:
 
 		# Best ancestor recording
 		print("    Recording ancestor...")
+		population1.sort(key=lambda p: p.fitness, reverse=True)
+		population2.sort(key=lambda p: p.fitness, reverse=True)
 		bestAncestors1.append(population1[0])
 		bestAncestors2.append(population2[0])
 
 		# Pickle population
-		print("    Pickling populations...")
+		##print("    Pickling populations...")
 		for p in population1 + population2:  # Erase grandparents to save memory
 			for pp in p.parents:
 				if pp not in population1 and pp not in population2:
 					pp.parents = []
-		pickleFile1 = open(directoryName + '/gen' + str(i) + '_1', 'wb')
-		pickle.dump(population1, pickleFile1)
-		pickleFile1.close()
-		pickleFile2 = open(directoryName + '/gen' + str(i) + '_2', 'wb')
-		pickle.dump(population2, pickleFile2)
-		pickleFile2.close()
+		##pickleFile1 = open(directoryName + '/gen' + str(i) + '_1', 'wb')
+		##pickle.dump(population1, pickleFile1)
+		##pickleFile1.close()
+		##pickleFile2 = open(directoryName + '/gen' + str(i) + '_2', 'wb')
+		##pickle.dump(population2, pickleFile2)
+		##pickleFile2.close()
 
 		# Pickle face-off fitnesses
 		print("    Pickling face-off fitnesses...")
